@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Speech to Text — Good Morning Detector (Auto Restart)</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    button { padding: 10px 16px; font-size: 16px; margin-right: 8px; }
+    #output {
+      margin-top: 18px;
+      padding: 12px;
+      border: 1px solid #ccc;
+      min-height: 60px;
+      white-space: pre-wrap;
+    }
+    #indicator {
+      margin-top: 12px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background-color: red;
+      display: inline-block;
+      vertical-align: middle;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+</head>
+<body>
+
+<h2>Speech to Text — Good Morning Detector (Auto Restart)</h2>
+
+<button id="startBtn">🎤 Start Listening</button>
+<button id="stopBtn" disabled>⛔ Stop</button>
+
+<div id="output">Text will appear here...</div>
+
+<div>
+  <div id="indicator"></div>
+</div>
+
+<script>
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (!SpeechRecognition) {
+    alert("Speech Recognition is not supported in this browser.");
+  } else {
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    const output = document.getElementById("output");
+    const indicator = document.getElementById("indicator");
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+
+    let restarting = false;
+
+    recognition.onresult = (event) => {
+      if (restarting) return;
+
+      let text = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        text += event.results[i][0].transcript;
+      }
+
+      output.innerText = text;
+
+      // Detect trigger phrase
+      if (text.toLowerCase().includes("good morning")) {
+
+        // Green indicator
+        indicator.style.backgroundColor = "green";
+
+        // Clear text
+        output.innerText = "";
+
+        // Turn back to red after 500ms
+        setTimeout(() => {
+          indicator.style.backgroundColor = "red";
+        }, 500);
+
+        // AUTO-RESTART recognizer to keep listening
+        restarting = true;
+        recognition.stop(); // must stop before restart
+
+        setTimeout(() => {
+          restarting = false;
+          recognition.start();
+        }, 300); // small delay prevents Chrome freeze
+      }
+    };
+
+    recognition.onend = () => {
+      if (restarting) return; // If we are restarting, ignore end event
+
+      // If the user clicked STOP, keep it stopped
+      stopBtn.disabled = true;
+      startBtn.disabled = false;
+    };
+
+    startBtn.onclick = () => {
+      recognition.start();
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+    };
+
+    stopBtn.onclick = () => {
+      recognition.stop();
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+    };
+  }
+</script>
+
+</body>
+</html>
